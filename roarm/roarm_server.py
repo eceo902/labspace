@@ -6,7 +6,7 @@ class RoArmServer:
     def __init__(self, host, port, serial_port, baud_rate):
         self.host = host
         self.port = port
-        self.serial = serial.Serial(serial_port, baud_rate)
+        #self.serial = serial.Serial(serial_port, baud_rate)
 
     async def handle_client(self, reader, writer):
         while True:
@@ -39,7 +39,7 @@ class RoArmServer:
             f'A{joint_id}': 60  # Acceleration, adjust as needed
         })
         
-        self.serial.write(arm_command.encode())
+        #self.serial.write(arm_command.encode())
         # You might need to add a small delay here depending on the arm's response time
         # await asyncio.sleep(0.1)
         
