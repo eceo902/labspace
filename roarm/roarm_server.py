@@ -23,7 +23,7 @@ class RoArmServer:
         self.serial_thread = threading.Thread(target=self.read_serial)
         self.serial_thread.daemon = True
         self.serial_lock = threading.RLock()
-        #self.serial_thread.start()
+        self.serial_thread.start()
 
     def read_serial(self):
         while True:
@@ -118,7 +118,7 @@ class RoArmServer:
             await server.serve_forever()
 
 if __name__ == "__main__":
-    roarm_server = RoArmServer('localhost', 8659, '/dev/tty.usbserial-10', 115200)
+    roarm_server = RoArmServer('0.0.0.0', 8659, '/dev/tty.usbserial-10', 115200)
     asyncio.run(roarm_server.run())
 
 # {"T":1041,"x":235,"y":0,"z":234,"t":3.14} <-- this command works to move the arm to a specific position (in mm) and the gripper to a specific angle (in radians)
