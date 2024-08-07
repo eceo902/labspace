@@ -12,17 +12,32 @@ class RoArmAPI:
         self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
         
     async def send_command(self, command):
+        print(f"RoArmAPI: command = {command}")
         self.writer.write(json.dumps(command).encode())
         await self.writer.drain()
         
-        data = await self.reader.read(100)
+        data = await self.reader.read(4096)
+        print(f"RoArmAPI: received data = {data}")
         return json.loads(data.decode())
-    
-    async def move_joint(self, joint_id, angle):
+
+    async def move(self, x, y, z, grip_angle=3.14):
         command = {
-            "type": "move_joint",
-            "joint": joint_id,
-            "angle": angle
+            "type": "move_xyzt",
+            "x": x,
+            "y": y,
+            "z": z,
+            "grip_angle": grip_angle
+        }
+        return await self.send_command(command)
+    
+    async def move_interp(self, x, y, z, grip_angle=3.14, speed=0.25):
+        command = {
+            "type": "move_xyzt_interp",
+            "x": x,
+            "y": y,
+            "z": z,
+            "grip_angle": grip_angle,
+            "speed": speed
         }
         return await self.send_command(command)
     
