@@ -6,25 +6,61 @@ import asyncio
 import json
 import serial
 import threading
+import os
+import serial.tools
+import serial.tools.list_ports
 
 class RoArmServer:
     CMD_XYZT_DIRECT_CTRL = 1041
     CMD_XYZT_GOAL_CTRL = 104
 
-    def __init__(self, host, port, serial_port, baud_rate):
+    def __init__(self, host, port, usb_ports, baud_rate, print_read=False):
         self.host = host
         self.port = port
-        self.serial = serial.Serial(serial_port, baudrate=baud_rate, dsrdtr=None, timeout=.1)
-        self.serial.setRTS(False)
-        self.serial.setDTR(False)
-
-        # Start the serial reading thread
-        self.serial_thread = threading.Thread(target=self.read_serial)
-        self.serial_thread.daemon = True
+        self.usb_ports = usb_ports
+        self.baud_rate = baud_rate
+        self.serial = None
+        self.active_serial_port = None
         self.serial_lock = threading.RLock()
-        #self.serial_thread.start()
+
+        if print_read:
+            # Start the serial reading thread
+            self.serial_thread = threading.Thread(target=self.read_serial)
+            self.serial_thread.daemon = True
+            self.serial_thread.start()
+
+    def _ensure_serial(self):
+        system_usbs = [usb.device for usb in serial.tools.list_ports.comports()]
+        system_usbs.extend(['/dev/' + d for d in os.listdir('/dev') if 'usb' in d.lower()])
+        if self.active_serial_port not in system_usbs:
+            print(f"Active serial port {self.active_serial_port} is not in system USBs. Closing serial port.")
+            try:
+                self.serial is not None and self.serial.close()
+            except Exception:
+                pass
+            self.serial = None
+        while self.serial is None:
+            for usb_port in self.usb_ports:
+                print(f'Attempting to open serial port {usb_port}.')
+                try:
+                    self.serial = serial.Serial(usb_port, baudrate=self.baud_rate, dsrdtr=None, timeout=.1)
+                    self.serial.setRTS(False)
+                    self.serial.setDTR(False)
+                    self.active_serial_port = usb_port
+                    print(f"Opened serial port {usb_port}.")
+                    return
+                except serial.SerialException:
+                    print(f"Failed to open serial port {usb_port}.")
+            print("Retrying in 1 second.")
+            time.sleep(1)
+
+    def send_serial(self, command):
+        self._ensure_serial()
+        with self.serial_lock:
+            self.serial.write(command.encode() + b'\n')
 
     def read_serial(self):
+        self._ensure_serial()
         while True:
             with self.serial_lock:
                 data = self.serial.readline().decode('utf-8')
@@ -70,9 +106,9 @@ class RoArmServer:
             "t": t,
             "spd":speed
         })
-        
-        self.serial.write(arm_command.encode() + b'\n')
-        
+
+        self.send_serial(arm_command)
+
         # Wait for a short time to allow the arm to process the command
         await asyncio.sleep(0.1)
 
@@ -98,12 +134,12 @@ class RoArmServer:
             "t": t,
             "spd":0.25
         })
-        
-        self.serial.write(arm_command.encode() + b'\n')
-        
+
+        self.send_serial(arm_command)
+
         # Wait for a short time to allow the arm to process the command
         await asyncio.sleep(0.1)
-        
+
         return {"status": "success", "message": f"Moved arm to x:{x}m, y:{y}m, z:{z}m, t:{t}rad"}
 
     async def run(self):
@@ -117,7 +153,10 @@ class RoArmServer:
             await server.serve_forever()
 
 if __name__ == "__main__":
-    roarm_server = RoArmServer('0.0.0.0', 8659, '/dev/ttyUSB0', 115200)
+    import sys
+    host = '0.0.0.0' if '--host' not in sys.argv else sys.argv[sys.argv.index('--host')+1]
+    usb_ports = ['/dev/ttyUSB0', '/dev/tty.usbserial-10'] if '--usb' not in sys.argv else sys.argv[sys.argv.index('--usb')+1].split(',')
+    roarm_server = RoArmServer(host, 8659, usb_ports, 115200)
     asyncio.run(roarm_server.run())
 
 # {"T":1041,"x":235,"y":0,"z":234,"t":3.14} <-- this command works to move the arm to a specific position (in mm) and the gripper to a specific angle (in radians)
