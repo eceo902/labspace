@@ -22,6 +22,7 @@ class RoArmServer:
         self.serial = None
         self.active_serial_port = None
         self.serial_lock = threading.RLock()
+        self._prev_xyz = None
 
         if print_read:
             # Start the serial reading thread
@@ -117,6 +118,11 @@ class RoArmServer:
             data += self.serial.readline().decode('utf-8').strip()
         print(f"Received from arm: {data}", end='')
 
+        estimated_time = self.estimate_time(x, y, z, speed)
+        await asyncio.sleep(estimated_time)
+
+        self.remember_position(x, y, z)
+
         print(f'sending response: {{"status": "success", "message": "Moved arm to x:{x}m, y:{y}m, z:{z}m, t:{t}rad", "response": {data}}}')
         return {"status": "success", "message": f"Moved arm to x:{x}m, y:{y}m, z:{z}m, t:{t}rad", "device_message": data}
 
@@ -141,6 +147,20 @@ class RoArmServer:
         await asyncio.sleep(0.1)
 
         return {"status": "success", "message": f"Moved arm to x:{x}m, y:{y}m, z:{z}m, t:{t}rad"}
+    
+    def estimate_time(self, x, y, z, speed=None):
+        if speed is None:
+            speed = 0.25
+        prev_x, prev_y, prev_z = self._prev_xyz
+        estimated_time = 1
+        estimated_time += ((x - prev_x)**2 + (y - prev_y)**2 + (z - prev_z)**2)**0.5 / speed
+        # add extra time if the arm has a negative x coordinate (reaching behind its base) and the y coordinate has changed sign
+        if x < 0 and prev_x >= 0 and y*prev_y < 0:
+            estimated_time += 8
+        return estimated_time
+    
+    def remember_position(self, x, y, z):
+        self._prev_xyz = (x, y, z)
 
     async def run(self):
         server = await asyncio.start_server(
