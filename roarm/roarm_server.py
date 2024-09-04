@@ -146,6 +146,16 @@ class RoArmServer:
         # Wait for a short time to allow the arm to process the command
         await asyncio.sleep(0.1)
 
+        data = ''
+        for _ in range(4):
+            data += self.serial.readline().decode('utf-8').strip()
+        print(f"Received from arm: {data}", end='')
+
+        estimated_time = self.estimate_time(x, y, z)
+        await asyncio.sleep(estimated_time)
+
+        self.remember_position(x, y, z)
+
         return {"status": "success", "message": f"Moved arm to x:{x}m, y:{y}m, z:{z}m, t:{t}rad"}
     
     def estimate_time(self, x, y, z, speed=None):
@@ -153,6 +163,8 @@ class RoArmServer:
             speed = 0.25
         if speed < 0.001:
             speed = 0.001
+        if self._prev_xyz is None:
+            return 10
         prev_x, prev_y, prev_z = self._prev_xyz
         estimated_time = 1
         estimated_time += ((x - prev_x)**2 + (y - prev_y)**2 + (z - prev_z)**2)**0.5 / speed
