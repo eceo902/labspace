@@ -149,14 +149,17 @@ class RoArmServer:
         return {"status": "success", "message": f"Moved arm to x:{x}m, y:{y}m, z:{z}m, t:{t}rad"}
     
     def estimate_time(self, x, y, z, speed=None):
-        if speed is None:
+        if speed is None or speed > 0.25:
             speed = 0.25
+        if speed < 0.001:
+            speed = 0.001
         prev_x, prev_y, prev_z = self._prev_xyz
         estimated_time = 1
         estimated_time += ((x - prev_x)**2 + (y - prev_y)**2 + (z - prev_z)**2)**0.5 / speed
         # add extra time if the arm has a negative x coordinate (reaching behind its base) and the y coordinate has changed sign
         if x < 0 and prev_x >= 0 and y*prev_y < 0:
             estimated_time += 8
+        estimated_time = min(estimated_time, 60)
         return estimated_time
     
     def remember_position(self, x, y, z):
