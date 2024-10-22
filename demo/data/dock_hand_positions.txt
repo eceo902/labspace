@@ -1,0 +1,22 @@
+Predicted positions of points that will be measured using hand tracking, pulled from CAD model
+Starting from root of thumb, moving up to tip, and then going across hand root to tip, pointer to pinky
+
+Point: X -198.454 Y -13.092 Z 34.045 mm
+Point: X -210.303 Y -21.092 Z 55.271 mm
+Point: X -222.944 Y -25.092 Z 72.030 mm
+Point: X -172.724 Y 10.908 Z 67.723 mm
+Point: X -176.484 Y 5.908 Z 101.541 mm
+Point: X -178.007 Y 3.908 Z 117.789 mm
+Point: X -178.651 Y -0.092 Z 133.142 mm
+Point: X -153.690 Y 9.908 Z 68.936 mm
+Point: X -152.515 Y 9.908 Z 107.483 mm
+Point: X -151.832 Y 8.908 Z 124.578 mm
+Point: X -150.460 Y 7.908 Z 142.602 mm
+Point: X -135.482 Y 3.908 Z 63.754 mm
+Point: X -129.602 Y 5.908 Z 100.487 mm
+Point: X -126.677 Y 3.908 Z 117.195 mm
+Point: X -123.329 Y 2.908 Z 134.296 mm
+Point: X -117.963 Y -0.092 Z 56.902 mm
+Point: X -110.390 Y 1.908 Z 79.990 mm
+Point: X -105.624 Y -0.092 Z 91.308 mm
+Point: X -100.256 Y -2.092 Z 106.967 mm
